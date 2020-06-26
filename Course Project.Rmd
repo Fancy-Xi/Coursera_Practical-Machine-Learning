@@ -39,13 +39,11 @@ valid <- read.csv("pml-testing.csv")
 training <- tr[, which(colMeans(!is.na(tr)) > 0.9)]
 # validate <- valid[, which(colMeans(!is.na(valid)) > 0.9)]
 dim(training)
-dim(validate)
 ## Remoce columns with nearly 0 variance
 zero <- nearZeroVar(training)
 training <- training[,-zero]
 # validate <- validate[,-zero]
 dim(training)
-dim(validate)
 
 ## Remove the first 5 columns that contains only identification information
 training <- training[,-c(1:5)]
@@ -121,7 +119,7 @@ plot(rfmodel$finalModel)
 ```{r gbm}
 set.seed(12345)
 controlRF <- trainControl(method="cv", number=3, verboseIter=FALSE)
-gbmmodel <- train(classe ~., data=trainingdata, method="gbm", trControl=controlRF)
+gbmmodel <- train(classe ~., data=trainingdata, method="gbm", trControl=controlRF, verbose=FALSE)
 
 ## Validate "gbmmodel" on the testing data
 predictgbm <- predict(gbmmodel, newdata = testingdata)
