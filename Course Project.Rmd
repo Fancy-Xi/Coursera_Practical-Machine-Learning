@@ -1,0 +1,160 @@
+---
+title: "Course Project"
+author: "Xi Fang"
+date: "6/26/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(caret)
+library(ggplot2)
+library(reshape2)
+library(rattle)
+```
+
+## Background
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement – a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: http://groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset).
+
+## Data
+The training data for this project are available here:
+
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv
+
+The test data are available here:
+
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv
+
+The data for this project come from this source: http://groupware.les.inf.puc-rio.br/har. If you use the document you create for this class for any purpose please cite them as they have been very generous in allowing their data to be used for this kind of assignment.
+
+## Goals
+The goal of your project is to predict the manner in which they did the exercise. This is the "classe" variable in the training set. You may use any of the other variables to predict with. You should create a report describing how you built your model, how you used cross validation, what you think the expected out of sample error is, and why you made the choices you did. You will also use your prediction model to predict 20 different test cases.
+
+## Data processing
+```{r data}
+tr <- read.csv("pml-training.csv")
+valid <- read.csv("pml-testing.csv")
+
+## Remove columns with more than 90% NA
+training <- tr[, which(colMeans(!is.na(tr)) > 0.9)]
+# validate <- valid[, which(colMeans(!is.na(valid)) > 0.9)]
+dim(training)
+dim(validate)
+## Remoce columns with nearly 0 variance
+zero <- nearZeroVar(training)
+training <- training[,-zero]
+# validate <- validate[,-zero]
+dim(training)
+dim(validate)
+
+## Remove the first 5 columns that contains only identification information
+training <- training[,-c(1:5)]
+# validate <- validate[,-c(1:5)]
+
+## prepare data for prediction
+set.seed(123)
+inTrain <- createDataPartition(training$classe, p=0.7, list = FALSE)
+trainingdata <- training[inTrain,]
+testingdata <- training[-inTrain,]
+dim(trainingdata)
+dim(testingdata)
+
+```
+
+## Correlation analysis for potential predictors
+```{r cor}
+matrix <- cor(trainingdata[,-54])
+library(corrplot)
+corrplot(matrix, order = "FPC", method = "color", type = "lower", tl.cex = 0.8, tl.col = rgb(0,0,0))
+```
+Dark color in the heatmap indicates variabls highly correlated to each other. We will select the highly-correlated variables out (r=0.75)
+```{r high-corre}
+highcorr <- findCorrelation(matrix, cutoff = 0.75)
+names(trainingdata)[highcorr]
+```
+
+## Model buiding
+For this project, we will build three prediction models using classification tree, random forests, and gradient boosting machine.
+
+### Classification trees (decision tree)
+```{r dt}
+set.seed(12345)
+library(rpart)
+treemodel <- rpart(classe ~., data=trainingdata, method="class")
+fancyRpartPlot(treemodel)
+
+## Validate "decision tree" on the testing data
+predict_tree <- predict(treemodel, newdata= testingdata, type = "class")
+f <- as.factor(testingdata$classe)
+conMatrixtree <- confusionMatrix(f,predict_tree)
+conMatrixtree
+conMatrixtree$overall[1]
+
+## plot the matrix
+plot(conMatrixtree$table, col=conMatrixtree$byClass,
+     main=paste("Decision Tree Accuracy =",
+                round(conMatrixtree$overall['Accuracy'],4)))
+```
+### Random Forest
+```{r rf}
+set.seed(12345)
+controlRF <- trainControl(method="cv", number=3, verboseIter=FALSE)
+rfmodel <- train(classe ~., data=trainingdata, method="rf", trControl=controlRF)
+
+## Validate "rfmodel" on the testing data
+predictrf <- predict(rfmodel, newdata = testingdata)
+f <- as.factor(testingdata$classe)
+conMatrixrf <- confusionMatrix(predictrf, f)
+conMatrixrf
+conMatrixrf$overall[1]
+
+## the accuracy is very high = 0.9983, so the out-of-sample-error is almost 0.
+plot(rfmodel)
+## plot the matrix
+plot(conMatrixrf$table, col=conMatrixrf$byClass,
+     main=paste("Random Forest Accuracy =",
+                round(conMatrixrf$overall['Accuracy'],4)))
+plot(rfmodel$finalModel)
+```
+### Gradient Boosting Machines
+
+```{r gbm}
+set.seed(12345)
+controlRF <- trainControl(method="cv", number=3, verboseIter=FALSE)
+gbmmodel <- train(classe ~., data=trainingdata, method="gbm", trControl=controlRF)
+
+## Validate "gbmmodel" on the testing data
+predictgbm <- predict(gbmmodel, newdata = testingdata)
+f <- as.factor(testingdata$classe)
+conMatrixgbm <- confusionMatrix(predictgbm, f)
+conMatrixgbm
+conMatrixgbm$overall[1]
+
+## plot the matrix
+print(gbmmodel)
+plot(gbmmodel)
+plot(conMatrixgbm$table, col=conMatrixgbm$byClass,
+     main=paste("Random Forest Accuracy =",
+                round(conMatrixgbm$overall['Accuracy'],4)))
+
+```
+
+
+
+## Summary
+
+The accuracy of the three prediction models are:
+
+1. Decision tree: 0.8274
+2. Random Forest: 0.9983
+3. Gradient Boosting Machine: 0.9866
+
+In this case, the Random Forest model will be applied to predict the 20 observations in the quiz.
+
+```{r quiz}
+val <- predict(rfmodel, newdata = valid)
+val
+
+
+
+```
