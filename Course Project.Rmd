@@ -116,7 +116,7 @@ plot(rfmodel$finalModel)
 ```
 ### Gradient Boosting Machines
 
-```{r gbm}
+```{r gbm}   
 set.seed(12345)
 controlRF <- trainControl(method="cv", number=3, verboseIter=FALSE)
 gbmmodel <- train(classe ~., data=trainingdata, method="gbm", trControl=controlRF, verbose=FALSE)
