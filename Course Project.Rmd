@@ -120,7 +120,7 @@ plot(rfmodel$finalModel)
 set.seed(12345)
 controlRF <- trainControl(method="cv", number=3, verboseIter=FALSE)
 gbmmodel <- train(classe ~., data=trainingdata, method="gbm", trControl=controlRF, verbose=FALSE)
-
+  
 ## Validate "gbmmodel" on the testing data
 predictgbm <- predict(gbmmodel, newdata = testingdata)
 f <- as.factor(testingdata$classe)
