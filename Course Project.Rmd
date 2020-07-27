@@ -153,6 +153,4 @@ In this case, the Random Forest model will be applied to predict the 20 observat
 val <- predict(rfmodel, newdata = valid)
 val
 
-
-
 ```
